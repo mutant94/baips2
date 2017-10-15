@@ -1,0 +1,20 @@
+<form method="get" action="/messages/edit">
+    <input type="hidden" name="confirm" value="true">
+    <input type="hidden" name="message_id" value="{{ message.id }}">
+    <input type="text" name="message_content" value="{{ message.content }}">
+    <select name="editor_id">
+
+        <option value=""></option>
+        {% for user_editor in all_users %}
+            {% if user_editor.id != user.id %}
+                {% if message.editor.id == user_editor.id %}
+                    <option selected="true" value="{{ user_editor.id }}">{{ user_editor.username }}</option>
+                {% else %}
+                    <option value="{{ user_editor.id }}">{{ user_editor.username }}</option>
+                {% endif %}
+
+            {% endif %}
+        {% endfor %}
+    </select>
+    <input type="submit" value="Zatwiedź">
+</form>

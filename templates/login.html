@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block title %} Zaloguj {% endblock %}
+
+{% block content %}
+    {% if error %}
+        <div>Zły login lub hasło!</div>
+    {% endif %}
+    <form method="get" action="login">
+        {% csrf_token %}
+        <table>
+            <tr>
+                <td>Login: </td>
+                <td><input name="username"></td>
+            </tr>
+            <tr>
+                <td>Hasło</td>
+                <td><input type="password" name="password"></td>
+            </tr>
+        </table>
+    <input type="submit">
+    </form>
+
+{% endblock %}

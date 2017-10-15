@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block title %} Wiadomości {% endblock %}
+
+{% block content %}
+    <div id="messages">
+        <table>
+            {% for message in messages %}
+                <tr>
+                    <td>
+                        Wiadomość: {{ message.content }}
+                    </td>
+                    <td>
+                        Właściciel: {{ message.owner.username }}
+                    </td>
+                    <td>
+                        Edytor: {{ message.editor.username }}
+                    </td>
+                    <td>
+                        <form method="get" action="/messages/">
+                            <input type="hidden" name="par" value="{{message.id}}">
+                            <input type="submit" value="Usuń" name="action">
+                        </form>
+                        <form method="get" action="/messages/">
+                            <input type="hidden" name="par" value="{{message.id}}">
+                            <input type="submit" value="Edytuj" name="action">
+                        </form>
+                    </td>
+                </tr>
+            {% endfor %}
+
+        </table>
+    </div>
+
+    {% if user.is_authenticated %}
+        <div id="add-message">
+            <p>Nowa wiadomość: </p>
+            <form method="get" action="/messages/">
+                <input type="text" name="par">
+                <input type="hidden" value="Dodaj" name="action">
+                <input type="submit" value="Dodaj">
+            </form>
+        </div>
+    {% endif %}
+
+{% endblock %}
