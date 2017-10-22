@@ -1,9 +1,13 @@
+from django.utils import timezone
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.shortcuts import redirect
 
 # Create your views here.
 from django.template.response import TemplateResponse
 
+from baips2 import settings
 from ps2 import models
 
 
@@ -30,7 +34,21 @@ def messages(request):
     if action_type == "Edytuj":
         return edit_message(request)
 
-    return TemplateResponse(request, 'messages.html', {'show_login_button': True, 'messages': messages_all})
+    context = {'show_login_button': True, 'messages': messages_all}
+    if request.user.is_authenticated():
+        context['login_info'] = {}
+        secondLastSuccesfulLogin = models.UserLoginInfo.getSecondLastSuccessfulLogin(request.user.username)
+        context['login_info'][
+            'last_successful_login'] = secondLastSuccesfulLogin.login_attempt_date if secondLastSuccesfulLogin is not None else ''
+        lastUnsuccessfulLogin = models.UserLoginInfo.getLastUnsuccessfulLogin(request.user.username)
+        context['login_info'][
+            'last_unsuccessful_login'] = lastUnsuccessfulLogin.login_attempt_date if lastUnsuccessfulLogin is not None else ''
+        lastUnsuccessfulLoginCount = models.UserLoginInfo.getUnsuccesfulLoginTriesAfterSecondLastSuccessful(
+            request.user.username)
+        context['login_info'][
+            'last_unsuccessful_login_count'] = lastUnsuccessfulLoginCount if lastUnsuccessfulLoginCount is not None else ''
+
+    return TemplateResponse(request, 'messages.html', context)
 
 
 def edit_message(request):
@@ -51,7 +69,8 @@ def edit_message(request):
         if message_to_edit:
             if message_to_edit.can_content_be_edited_by(request.user):
                 all_users = models.User.objects.all()
-                return TemplateResponse(request, 'edit_message.html', {'all_users': all_users, 'message': message_to_edit})
+                return TemplateResponse(request, 'edit_message.html',
+                                        {'all_users': all_users, 'message': message_to_edit})
             else:
                 return redirect('/messages/')
         else:
@@ -59,22 +78,53 @@ def edit_message(request):
 
 
 def log_in(request):
+    bad_cred = 'Zły login lub hasło!'
     if request.user.is_authenticated():
         return redirect('/messages/')
     username = request.GET.get('username')
     password = request.GET.get('password')
 
     if username and password:
-        user = authenticate(request, username=username, password=password)
-        if user is not None:
-            login(request, user)
-            return redirect('/messages/')
-        else:
-            return TemplateResponse(request, 'login.html', {'error': 'wrong credentials'})
+        user_login_attempt = models.UserLoginInfo()
+        user_login_attempt.user = username
+        now = timezone.now()
+        user_login_attempt.login_attempt_date = now
+
+        previous_unsuccesful_login = models.UserLoginInfo.getLastUnsuccessfulLogin(username)
+        login_count = models.UserLoginInfo.getUnsuccesfulLoginTriesAfterLastSuccessful(username)
+        try:
+            if login_count is not None:
+                if login_count > settings.LOGIN_ATTEMPTS_MAX_ERRORS:
+                    user = User.objects.get(username=username)
+                    user.is_active = False
+                    user.save()
+                    raise Exception("Uzytkownik jest zablokowany, skontaktuj się z administratorem")
+
+            if previous_unsuccesful_login is not None:
+                next_login_time = previous_unsuccesful_login.login_attempt_date + timezone.timedelta(minutes=(5 * login_count))
+                if next_login_time > now:
+                    next_login_time = now + timezone.timedelta(minutes=(5 * (login_count + 1)))
+                    raise Exception(
+                        "Z powodu zbyt wielu błędów użytkownik został zablokowany do " + str(next_login_time))
+
+            user = authenticate(request, username=username, password=password)
+            if user is not None:
+                login(request, user)
+                user_login_attempt.is_login_successful = True
+                return redirect('/messages/')
+            else:
+                raise Exception(bad_cred)
+
+        except Exception as e:
+            user_login_attempt.is_login_successful = False
+            return TemplateResponse(request, 'login.html', {'error': str(e)})
+        finally:
+            user_login_attempt.save()
     else:
-        return TemplateResponse(request, 'login.html', {'show_login_button': False})
+        return TemplateResponse(request, 'login.html')
 
 
+@login_required
 def log_out(request):
     logout(request)
     return redirect('/messages/')

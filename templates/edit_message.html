@@ -1,20 +1,38 @@
-<form method="get" action="/messages/edit">
-    <input type="hidden" name="confirm" value="true">
-    <input type="hidden" name="message_id" value="{{ message.id }}">
-    <input type="text" name="message_content" value="{{ message.content }}">
-    <select name="editor_id">
+{% extends 'base.html' %}
 
-        <option value=""></option>
-        {% for user_editor in all_users %}
-            {% if user_editor.id != user.id %}
-                {% if message.editor.id == user_editor.id %}
-                    <option selected="true" value="{{ user_editor.id }}">{{ user_editor.username }}</option>
-                {% else %}
-                    <option value="{{ user_editor.id }}">{{ user_editor.username }}</option>
-                {% endif %}
+{% block title %} Wiadomości {% endblock %}
 
-            {% endif %}
-        {% endfor %}
-    </select>
-    <input type="submit" value="Zatwiedź">
-</form>
+{% block content %}
+    <form method="get" action="/messages/edit">
+        <div class="row">
+
+            <input type="hidden" name="confirm" value="true">
+            <input type="hidden" name="message_id" value="{{ message.id }}">
+            <div class="input-field col s4">
+                <input id="message_content" type="text" name="message_content" value="{{ message.content }}">
+                <label for="message_content">Message Content:</label>
+            </div>
+            <div class="col s4">
+                <label for="editor_id">Select editor</label>
+                <select id="editor_id" name="editor_id" class="browser-default">
+                    <option value=""></option>
+                    {% for user_editor in all_users %}
+                        {% if user_editor.id != user.id %}
+                            {% if message.editor.id == user_editor.id %}
+                                <option selected="true"
+                                        value="{{ user_editor.id }}">{{ user_editor.username }}</option>
+                            {% else %}
+                                <option value="{{ user_editor.id }}">{{ user_editor.username }}</option>
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col s2">
+                <input type="submit" value="Zatwiedź" class="waves-effect waves-light btn">
+            </div>
+        </div>
+    </form>
+{% endblock %}

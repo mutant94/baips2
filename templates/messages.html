@@ -4,7 +4,7 @@
 
 {% block content %}
     <div id="messages">
-        <table>
+        <table class="bordered striped highlight">
             {% for message in messages %}
                 <tr>
                     <td>
@@ -18,12 +18,15 @@
                     </td>
                     <td>
                         <form method="get" action="/messages/">
-                            <input type="hidden" name="par" value="{{message.id}}">
-                            <input type="submit" value="Usuń" name="action">
+                            <input type="hidden" name="par" value="{{ message.id }}">
+                            <input type="submit" value="Edytuj" name="action" class="waves-effect waves-light btn">
                         </form>
+                    </td>
+                    <td>
                         <form method="get" action="/messages/">
-                            <input type="hidden" name="par" value="{{message.id}}">
-                            <input type="submit" value="Edytuj" name="action">
+                            <input type="hidden" name="par" value="{{ message.id }}">
+                            <input type="submit" value="Usuń" name="action"
+                                   class="waves-effect waves-light btn red lighten-1">
                         </form>
                     </td>
                 </tr>
@@ -36,9 +39,12 @@
         <div id="add-message">
             <p>Nowa wiadomość: </p>
             <form method="get" action="/messages/">
-                <input type="text" name="par">
+                <div class="input-field">
+                    <input id="msg_input" class="validate" type="text" name="par">
+                    <label for="msg_input">Message...</label>
+                </div>
                 <input type="hidden" value="Dodaj" name="action">
-                <input type="submit" value="Dodaj">
+                <input class="waves-effect waves-light btn" type="submit" value="Dodaj">
             </form>
         </div>
     {% endif %}

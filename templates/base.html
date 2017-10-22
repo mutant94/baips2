@@ -3,18 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <title>{% block title %}{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/css/materialize.min.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.2.1.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/js/materialize.min.js"></script>
 </head>
-<body>
-    <div id="top-bar">
-        {% if user.is_authenticated %}
-            <a href="/logout/"> Wyloguj </a>
-        {% elif show_login_button %}
-            <a href="/login/"> Zaloguj </a>
-        {% endif %}
+<body class="container">
+<nav>
+    <div class="nav-wrapper">
+
+        <a href="#" class="brand-logo">Messager</a>
+        <ul id="nav-mobile" class="right hide-on-med-and-down">
+            {% if user.is_authenticated and login_info %}
+                {% if login_info.last_successful_login %}
+                    <li style="margin-right:20px;">
+                        Last login: {{ login_info.last_successful_login }}
+                    </li>
+                {% endif %}
+                {% if login_info.last_unsuccessful_login %}
+                    <li style="margin-right:20px;">
+                        Last failed login: {{ login_info.last_unsuccessful_login }}
+                    </li>
+                {% endif %}
+                {% if login_info.last_unsuccessful_login_count %}
+                    <li style="margin-right:20px;">
+                        Failed logins count: {{ login_info.last_unsuccessful_login_count }}
+                    </li>
+                {% endif %}
+            {% endif %}
+            <li>
+                {% if user.is_authenticated %}
+                    <a href="/logout/" class="waves-effect waves-light btn red lighten-1"> Wyloguj </a>
+                {% elif show_login_button %}
+                    <a href="/login/" class="waves-effect waves-light btn"> Zaloguj </a>
+                {% endif %}
+            </li>
+        </ul>
     </div>
-    <div id="content">
-        {% block content %}
-        {% endblock %}
-    </div>
+</nav>
+<div id="content" class="section">
+    {% block content %}
+    {% endblock %}
+</div>
 </body>
 </html>
