@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load ps2_filters %}
 
 {% block title %} Zaloguj {% endblock %}
 
@@ -6,17 +7,27 @@
     {% if error %}
         <div>{{ error }}</div>
     {% endif %}
-    <form method="get" action="login">
+    <form method="get" action="/login/">
         {% csrf_token %}
+        <input type="hidden" name="mask" value="{{ mask }}">
         <div class="input-field">
-          <input id="username" type="text" name="username">
-          <label for="username">Username</label>
+            <input id="username" type="text" name="username" value="{{ p_username }}">
+            <label for="username">Username</label>
         </div>
-        <div class="input-field">
-          <input id="password" type="password" name="password">
-          <label for="password">Password</label>
+        <div class="row">
+            Password
+        </div>
+        <div class="row">
+            {% for i in '0123456789ABCDEF'|make_list %}
+                <div class="col s1">
+                    <div class="input-field">
+                        <input id="{{ i }}" type="password" name="{{ i }}" max="1"
+                                {% if mask|isbytezero:i %} disabled {% endif %}>
+                        <label for="{{ i }}">{{ i }}</label>
+                    </div>
+                </div>
+            {% endfor %}
         </div>
         <input type="submit" class="waves-effect waves-light btn">
     </form>
-
 {% endblock %}

@@ -22,6 +22,8 @@ urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'^messages/edit', views.edit_message),
     url(r'^messages/', views.messages),
+    url(r'^prelogin/', views.prelogin),
+    url(r'^register/', views.register),
     url(r'^login/', views.log_in),
     url(r'^logout/', views.log_out),
     url(r'', views.index)

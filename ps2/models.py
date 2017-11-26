@@ -1,3 +1,4 @@
+from django.contrib.auth.base_user import AbstractBaseUser
 from django.contrib.auth.models import User
 from django.db import models
 
@@ -67,3 +68,14 @@ class UserLoginInfo(models.Model):
             return UserLoginInfo.objects.filter(login_attempt_date__gt=lastSuccesfulLogin.login_attempt_date).count()
         else:
             return None
+
+
+class UserPasswords(AbstractBaseUser):
+    def get_short_name(self):
+        pass
+
+    def get_full_name(self):
+        pass
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    mask = models.IntegerField()
