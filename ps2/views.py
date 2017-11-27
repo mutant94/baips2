@@ -180,6 +180,15 @@ def log_in(request):
 
 
 @login_required
+def change_password(request): #todo
+    request_params = (request.GET.get('old-password'), request.GET.get('new-password'), request.GET.get('new-password-confirmation'))
+    if not any(param is None for param in request_params):
+        return TemplateResponse(request, 'change_password.html')
+    else:
+        return TemplateResponse(request, 'change_password.html')
+
+
+@login_required
 def log_out(request):
     logout(request)
     return redirect('/messages/')

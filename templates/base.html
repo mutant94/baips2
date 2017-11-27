@@ -33,6 +33,7 @@
             {% endif %}
             <li>
                 {% if user.is_authenticated %}
+                    <a href="/changepassword/" class="waves-effect waves-light btn red lighten-1"> Zmień hasło</a>
                     <a href="/logout/" class="waves-effect waves-light btn red lighten-1"> Wyloguj </a>
                 {% elif show_login_button %}
                     <a href="/prelogin/" class="waves-effect waves-light btn"> Zaloguj </a>
