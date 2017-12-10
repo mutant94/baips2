@@ -14,7 +14,7 @@ from django.template.response import TemplateResponse
 
 from baips2 import settings
 from ps2 import models
-from ps2.forms import RegistrationForm
+from ps2.forms import RegistrationForm, ChangePasswordForm
 from ps2.models import UserPasswords
 
 
@@ -180,12 +180,22 @@ def log_in(request):
 
 
 @login_required
-def change_password(request): #todo
-    request_params = (request.GET.get('old-password'), request.GET.get('new-password'), request.GET.get('new-password-confirmation'))
+def change_password(request):
+    request_params = (request.GET.get('old_password'), request.GET.get('new_password1'), request.GET.get('new_password2'))
     if not any(param is None for param in request_params):
-        return TemplateResponse(request, 'change_password.html')
+        form = ChangePasswordForm(request.GET)
+        if form.is_valid():
+            form.save()
+            return redirect('/messages/')
+        else: #TODO poprawic to
+            token = {'form': ChangePasswordForm(user=request.user)}
+            token.update(csrf(request))
+            token['error'] = json.dumps(form.errors)
+            return TemplateResponse(request, "change_password.html", token)
     else:
-        return TemplateResponse(request, 'change_password.html')
+        token = {'form': ChangePasswordForm(user=request.user)}
+        token.update(csrf(request))
+        return TemplateResponse(request, 'change_password.html', token)
 
 
 @login_required
