@@ -61,3 +61,16 @@ class ChangePasswordForm(PasswordChangeForm):
                 user_password.save()
 
         return user_with_changed_password
+
+    def clean_old_password(self):
+        old_password = self.cleaned_data["old_password"]
+        random_user_passwords = UserPasswords.objects.filter(user=self.user)
+        random_password_index = randint(0, len(random_user_passwords))
+        user_password_to_validate = random_user_passwords[random_password_index]
+        password_mask = user_password_to_validate.mask
+        # if not self.user.check_password(old_password):
+        raise forms.ValidationError(
+            self.error_messages['password_incorrect'],
+            code='password_incorrect',
+        )
+        return old_password

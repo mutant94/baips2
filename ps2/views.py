@@ -182,8 +182,9 @@ def log_in(request):
 @login_required
 def change_password(request):
     request_params = (request.GET.get('old_password'), request.GET.get('new_password1'), request.GET.get('new_password2'))
+    print(request.GET)
     if not any(param is None for param in request_params):
-        form = ChangePasswordForm(request.GET)
+        form = ChangePasswordForm(user=request.user, data=request.GET)
         if form.is_valid():
             form.save()
             return redirect('/messages/')
