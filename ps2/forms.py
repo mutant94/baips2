@@ -28,6 +28,7 @@ class RegistrationForm(UserCreationForm):
         passw = self.cleaned_data["password1"]
 
         user_passwords = baips_passwords.generate_user_passwords_entities(passw)
+        user.set_password(passw)
         if commit:
             user.save()
             for up in user_passwords:
@@ -51,7 +52,7 @@ class ChangePasswordForm(PasswordChangeForm):
     def save(self, commit=True):
         user_with_changed_password = super(PasswordChangeForm, self).save(commit=False)
         new_password = self.cleaned_data['new_password1']
-
+        user_with_changed_password.set_password(new_password)
         new_user_passwords = baips_passwords.generate_user_passwords_entities(new_password)
         UserPasswords.objects.filter(user=user_with_changed_password).delete()
         if commit:
@@ -62,15 +63,15 @@ class ChangePasswordForm(PasswordChangeForm):
 
         return user_with_changed_password
 
-    def clean_old_password(self):
-        old_password = self.cleaned_data["old_password"]
-        random_user_passwords = UserPasswords.objects.filter(user=self.user)
-        random_password_index = randint(0, len(random_user_passwords))
-        user_password_to_validate = random_user_passwords[random_password_index]
-        password_mask = user_password_to_validate.mask
-        # if not self.user.check_password(old_password):
-        raise forms.ValidationError(
-            self.error_messages['password_incorrect'],
-            code='password_incorrect',
-        )
-        return old_password
+    # def clean_old_password(self):
+    #     old_password = self.cleaned_data["old_password"]
+    #     random_user_passwords = UserPasswords.objects.filter(user=self.user)
+    #     random_password_index = randint(0, len(random_user_passwords))
+    #     user_password_to_validate = random_user_passwords[random_password_index]
+    #     password_mask = user_password_to_validate.mask
+    #     # if not self.user.check_password(old_password):
+    #     raise forms.ValidationError(
+    #         self.error_messages['password_incorrect'],
+    #         code='password_incorrect',
+    #     )
+    #     return old_password
