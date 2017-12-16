@@ -1,5 +1,6 @@
 import json
-from random import randint
+from functools import reduce
+from random import randint, randrange
 
 from django.http import HttpResponse, HttpResponseServerError
 from django.template.context_processors import csrf
@@ -121,7 +122,12 @@ def log_in(request):
             # difference between an existing and a non-existing user (#20760).
             User().set_password('randomtest')
             User().set_password('randomtest')
-            return TemplateResponse(request, 'prelogin.html', context={'error': 'Wrong user'})
+            fake_pass_len = randrange(8, 15)
+            p_size = randint(5, fake_pass_len)
+            tmp_psw = set()
+            while len(tmp_psw) != p_size:
+                tmp_psw.add(randint(0, fake_pass_len))
+            user_mask = reduce(lambda x, y: x + y, map(lambda x: (2 ** x), tmp_psw))
 
         return TemplateResponse(request, 'login.html', {'p_username': pre_username, 'mask': user_mask})
     else:
@@ -172,7 +178,7 @@ def log_in(request):
 
             except Exception as e:
                 user_login_attempt.is_login_successful = False
-                return TemplateResponse(request, 'prelogin.html', {'error': str(e)})
+                return TemplateResponse(request, 'prelogin.html', {'error': bad_cred})
             finally:
                 if user_login_attempt.is_login_successful is None:
                     user_login_attempt.is_login_successful = False
