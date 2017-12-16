@@ -162,21 +162,22 @@ def log_in(request):
 
                 user = User.objects.get(username=username)
                 user_p = UserPasswords.objects.get(user=user, mask=mask)
-                if user_p.check_password(password):
-                    if user is not None:
-                        login(request, user)
-                        user_login_attempt.is_login_successful = True
-                        return redirect('/messages/')
-                    else:
-                        raise Exception(bad_cred)
+                if user_p.check_password(password) and user is not None:
+                    login(request, user)
+                    user_login_attempt.is_login_successful = True
+                    return redirect('/messages/')
+                else:
+                    raise Exception(bad_cred)
 
             except Exception as e:
                 user_login_attempt.is_login_successful = False
-                return TemplateResponse(request, 'login.html', {'error': str(e)})
+                return TemplateResponse(request, 'prelogin.html', {'error': str(e)})
             finally:
+                if user_login_attempt.is_login_successful is None:
+                    user_login_attempt.is_login_successful = False
                 user_login_attempt.save()
         else:
-            return TemplateResponse(request, 'login.html')
+            return TemplateResponse(request, 'prelogin.html')
 
 
 @login_required
