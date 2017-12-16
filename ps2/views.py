@@ -61,14 +61,15 @@ def messages(request):
 def edit_message(request):
     if request.GET.get('confirm') and request.GET.get('message_id') and request.GET.get('message_content'):
         message_to_edit = models.Message.objects.get(id=request.GET.get('message_id'))
-        message_to_edit.content = request.GET.get('message_content')
-        if message_to_edit.is_owner(request.user):
-            if request.GET.get('editor_id'):
-                editor = models.User.objects.get(id=request.GET.get('editor_id'))
-                message_to_edit.editor = editor
-            else:
-                message_to_edit.editor = None
-        message_to_edit.save()
+        if message_to_edit.can_content_be_edited_by(request.user):
+            message_to_edit.content = request.GET.get('message_content')
+            if message_to_edit.is_owner(request.user):
+                if request.GET.get('editor_id'):
+                    editor = models.User.objects.get(id=request.GET.get('editor_id'))
+                    message_to_edit.editor = editor
+                else:
+                    message_to_edit.editor = None
+                message_to_edit.save()
         return redirect('/messages/')
     else:
         action_param = request.GET.get('par')
@@ -189,7 +190,7 @@ def change_password(request):
         if form.is_valid():
             form.save()
             return redirect('/messages/')
-        else: #TODO poprawic to
+        else:
             token = {'form': ChangePasswordForm(user=request.user)}
             token.update(csrf(request))
             token['error'] = json.dumps(form.errors)
