@@ -57,7 +57,7 @@ class UserLoginInfo(models.Model):
         secondLastSuccesfulLogin = UserLoginInfo.getSecondLastSuccessfulLogin(user)
         if secondLastSuccesfulLogin is not None:
             return UserLoginInfo.objects.filter(
-                login_attempt_date__gt=secondLastSuccesfulLogin.login_attempt_date, is_login_successful=False).count()
+                login_attempt_date__gt=secondLastSuccesfulLogin.login_attempt_date, is_login_successful=False, user=user).count()
         else:
             return None
 

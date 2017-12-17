@@ -70,7 +70,7 @@ def edit_message(request):
                     message_to_edit.editor = editor
                 else:
                     message_to_edit.editor = None
-                message_to_edit.save()
+            message_to_edit.save()
         return redirect('/messages/')
     else:
         action_param = request.GET.get('par')
