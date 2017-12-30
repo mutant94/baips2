@@ -57,7 +57,8 @@ class UserLoginInfo(models.Model):
         secondLastSuccesfulLogin = UserLoginInfo.getSecondLastSuccessfulLogin(user)
         if secondLastSuccesfulLogin is not None:
             return UserLoginInfo.objects.filter(
-                login_attempt_date__gt=secondLastSuccesfulLogin.login_attempt_date, is_login_successful=False, user=user).count()
+                login_attempt_date__gt=secondLastSuccesfulLogin.login_attempt_date, is_login_successful=False,
+                user=user).count()
         else:
             return None
 
@@ -65,9 +66,9 @@ class UserLoginInfo(models.Model):
     def getUnsuccesfulLoginTriesAfterLastSuccessful(user):
         lastSuccesfulLogin = UserLoginInfo.getLastSuccessfulLogin(user)
         if lastSuccesfulLogin is not None:
-            return UserLoginInfo.objects.filter(login_attempt_date__gt=lastSuccesfulLogin.login_attempt_date).count()
+            return UserLoginInfo.objects.filter(login_attempt_date__gt=lastSuccesfulLogin.login_attempt_date, user=user).count()
         else:
-            return None
+            return UserLoginInfo.objects.filter(user=user).count()
 
 
 class UserPasswords(AbstractBaseUser):
@@ -79,3 +80,14 @@ class UserPasswords(AbstractBaseUser):
 
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     mask = models.IntegerField()
+
+
+class LastUserMask(models.Model):
+    username = models.CharField(max_length=255)
+    mask = models.IntegerField()
+    passed = models.BooleanField(default=False)
+
+
+class UserLoginSettings(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True)
+    shouldBlock = models.BooleanField(default=False)

@@ -16,7 +16,7 @@ from django.template.response import TemplateResponse
 from baips2 import settings
 from ps2 import models
 from ps2.forms import RegistrationForm, ChangePasswordForm
-from ps2.models import UserPasswords
+from ps2.models import UserPasswords, LastUserMask
 
 
 def index(request):
@@ -113,21 +113,45 @@ def log_in(request):
     if pre_username is not None:
         try:
             user = User.objects.get(username=pre_username)
-            user_p = UserPasswords.objects.filter(user=user)
-            count = len(user_p)
-            random_user_p = randint(0, count - 1)
-            user_mask = user_p[random_user_p].mask
+            previous_mask = None
+            try:
+                previous_mask = LastUserMask.objects.get(username=pre_username, passed=False)
+            except:
+                pass
+            if previous_mask is not None:
+                user_mask = previous_mask.mask
+            else:
+                user_p = UserPasswords.objects.filter(user=user)
+                count = len(user_p)
+                random_user_p = randint(0, count - 1)
+                user_mask = user_p[random_user_p].mask
+                next_mask = LastUserMask()
+                next_mask.username = pre_username
+                next_mask.mask = user_mask
+                next_mask.save()
         except User.DoesNotExist or UserPasswords.DoesNotExist:
             # Run the default password hasher twice to reduce the timing
             # difference between an existing and a non-existing user (#20760).
             User().set_password('randomtest')
             User().set_password('randomtest')
-            fake_pass_len = randrange(8, 15)
-            p_size = randint(5, fake_pass_len)
-            tmp_psw = set()
-            while len(tmp_psw) != p_size:
-                tmp_psw.add(randint(0, fake_pass_len))
-            user_mask = reduce(lambda x, y: x + y, map(lambda x: (2 ** x), tmp_psw))
+            previous_mask = None
+            try:
+                previous_mask = LastUserMask.objects.get(username=pre_username, passed=False)
+            except:
+                pass
+            if previous_mask is not None:
+                user_mask = previous_mask.mask
+            else:
+                fake_pass_len = randrange(8, 15)
+                p_size = randint(5, fake_pass_len)
+                tmp_psw = set()
+                while len(tmp_psw) != p_size:
+                    tmp_psw.add(randint(0, fake_pass_len))
+                user_mask = reduce(lambda x, y: x + y, map(lambda x: (2 ** x), tmp_psw))
+                next_mask = LastUserMask()
+                next_mask.username = pre_username
+                next_mask.mask = user_mask
+                next_mask.save()
 
         return TemplateResponse(request, 'login.html', {'p_username': pre_username, 'mask': user_mask})
     else:
@@ -135,13 +159,16 @@ def log_in(request):
         if request.user.is_authenticated():
             return redirect('/messages/')
         username = request.GET.get('username')
-        mask = request.GET.get('mask')
+        mask = 0
         password = ""
 
         for x in range(16):
             part = request.GET.get(str(x))
             if part is not None:
+                mask += 2**x
                 password += str(part)
+
+        lastMask = LastUserMask.objects.get(username=username, passed=False)
 
         if username and password and mask:
             user_login_attempt = models.UserLoginInfo()
@@ -151,40 +178,50 @@ def log_in(request):
 
             previous_unsuccesful_login = models.UserLoginInfo.getLastUnsuccessfulLogin(username)
             login_count = models.UserLoginInfo.getUnsuccesfulLoginTriesAfterLastSuccessful(username)
+
+            if previous_unsuccesful_login is not None:
+                next_login_time = previous_unsuccesful_login.login_attempt_date + timezone.timedelta(
+                    seconds=(5 * login_count))
+                if next_login_time > now:
+                    # next_login_time = now + timezone.timedelta(minutes=(1 * (login_count + 1)))
+                    return TemplateResponse(request, 'prelogin.html', {'error': "Z powodu zbyt wielu błędów użytkownik został zablokowany do " + str(next_login_time)})
+
             try:
+                if mask != lastMask.mask:
+                    raise Exception('Invalid credentials')
                 if login_count is not None:
                     if login_count > settings.LOGIN_ATTEMPTS_MAX_ERRORS:
                         user = User.objects.get(username=username)
                         user.is_active = False
                         user.save()
                         raise Exception("Uzytkownik jest zablokowany, skontaktuj się z administratorem")
-
-                if previous_unsuccesful_login is not None:
-                    next_login_time = previous_unsuccesful_login.login_attempt_date + timezone.timedelta(
-                        minutes=(5 * login_count))
-                    if next_login_time > now:
-                        next_login_time = now + timezone.timedelta(minutes=(5 * (login_count + 1)))
-                        raise Exception(
-                            "Z powodu zbyt wielu błędów użytkownik został zablokowany do " + str(next_login_time))
-
-                user = User.objects.get(username=username)
-                user_p = UserPasswords.objects.get(user=user, mask=mask)
+                try:
+                    user = User.objects.get(username=username)
+                    user_p = UserPasswords.objects.get(user=user, mask=mask)
+                except:
+                    raise Exception("Invalid credentials")
                 if user_p.check_password(password) and user is not None:
+                    try:
+                        previous_mask = LastUserMask.objects.get(username=username, passed=False)
+                        previous_mask.passed = True
+                        previous_mask.save()
+                    except:
+                        pass
                     login(request, user)
                     user_login_attempt.is_login_successful = True
-                    return redirect('/messages/')
+                    return redirect('/messages/', request=request)
                 else:
                     raise Exception(bad_cred)
 
             except Exception as e:
                 user_login_attempt.is_login_successful = False
-                return TemplateResponse(request, 'prelogin.html', {'error': bad_cred})
+                return TemplateResponse(request, 'prelogin.html', {'error': e})
             finally:
                 if user_login_attempt.is_login_successful is None:
                     user_login_attempt.is_login_successful = False
                 user_login_attempt.save()
         else:
-            return TemplateResponse(request, 'prelogin.html')
+            return TemplateResponse(request, 'prelogin.html', {'error': "Invalid credentials"})
 
 
 @login_required
