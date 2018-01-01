@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.backends import ModelBackend
 from django.contrib.auth.models import Permission
 
 from ps2.models import UserPasswords
@@ -14,20 +15,23 @@ class PartialPasswordsAuth(object):
     """
 
     def authenticate(self, request, username=None, password=None, **kwargs):
-        password_mask = request.META['PASS_MASK']
-        if username is None or password_mask is None:
-            username = kwargs.get(UserModel.USERNAME_FIELD)
-        try:
-            user = UserModel._default_manager.get_by_natural_key(username)
-            user_p = UserPasswords.objects.filter(user=user, mask=password_mask)
-        except UserModel.DoesNotExist or UserPasswords.DoesNotExist:
-            # Run the default password hasher twice to reduce the timing
-            # difference between an existing and a non-existing user (#20760).
-            UserModel().set_password(password)
-            UserModel().set_password(password)
+        if 'PASS_MASK' in request.META:
+            password_mask = request.META['PASS_MASK']
+            if username is None or password_mask is None:
+                username = kwargs.get(UserModel.USERNAME_FIELD)
+            try:
+                user = UserModel._default_manager.get_by_natural_key(username)
+                user_p = UserPasswords.objects.filter(user=user, mask=password_mask)
+            except UserModel.DoesNotExist or UserPasswords.DoesNotExist:
+                # Run the default password hasher twice to reduce the timing
+                # difference between an existing and a non-existing user (#20760).
+                UserModel().set_password(password)
+                UserModel().set_password(password)
+            else:
+                if user_p.check_password(password) and self.user_can_authenticate(user):
+                    return user
         else:
-            if user_p.check_password(password) and self.user_can_authenticate(user):
-                return user
+            ModelBackend.authenticate(request, username, password, kwargs)
 
     def user_can_authenticate(self, user):
         """
