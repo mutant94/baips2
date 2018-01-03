@@ -14,11 +14,11 @@
             </div>
             <div class="col s4">
                 <label for="editor_id">Select editor</label>
-                <select id="editor_id" name="editor_id" class="browser-default">
+                <select multiple id="editor_id" name="editor_id" class="browser-default">
                     <option value=""></option>
                     {% for user_editor in all_users %}
                         {% if user_editor.id != user.id %}
-                            {% if message.editor.id == user_editor.id %}
+                            {% if user_editor.id in editor_ids %}
                                 <option selected="true"
                                         value="{{ user_editor.id }}">{{ user_editor.username }}</option>
                             {% else %}

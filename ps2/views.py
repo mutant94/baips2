@@ -2,6 +2,7 @@ import json
 from functools import reduce
 from random import randint, randrange
 
+from django.db.models import Q
 from django.http import HttpResponse, HttpResponseServerError
 from django.template.context_processors import csrf
 from django.utils import timezone
@@ -65,11 +66,15 @@ def edit_message(request):
         if message_to_edit.can_content_be_edited_by(request.user):
             message_to_edit.content = request.GET.get('message_content')
             if message_to_edit.is_owner(request.user):
-                if request.GET.get('editor_id'):
-                    editor = models.User.objects.get(id=request.GET.get('editor_id'))
-                    message_to_edit.editor = editor
+                if request.GET.getlist('editor_id'):
+                    editors_queries = [Q(id=editor_id) for editor_id in request.GET.getlist('editor_id')] # tutaj dzieje sie wtf
+                    query = editors_queries.pop()
+                    for other_query in editors_queries:
+                        query |= other_query
+                    editors = User.objects.filter(query)
+                    message_to_edit.editors = editors
                 else:
-                    message_to_edit.editor = None
+                    message_to_edit.editors = User.objects.none()
             message_to_edit.save()
         return redirect('/messages/')
     else:
@@ -78,8 +83,9 @@ def edit_message(request):
         if message_to_edit:
             if message_to_edit.can_content_be_edited_by(request.user):
                 all_users = models.User.objects.all()
+                editors_ids = [editor.id for editor in message_to_edit.editors.all()]
                 return TemplateResponse(request, 'edit_message.html',
-                                        {'all_users': all_users, 'message': message_to_edit})
+                                        {'all_users': all_users, 'editor_ids': editors_ids, 'message': message_to_edit})
             else:
                 return redirect('/messages/')
         else:
@@ -165,7 +171,7 @@ def log_in(request):
         for x in range(16):
             part = request.GET.get(str(x))
             if part is not None:
-                mask += 2**x
+                mask += 2 ** x
                 password += str(part)
 
         lastMask = LastUserMask.objects.get(username=username, passed=False)
@@ -184,7 +190,8 @@ def log_in(request):
                     seconds=(5 * login_count))
                 if next_login_time > now:
                     # next_login_time = now + timezone.timedelta(minutes=(1 * (login_count + 1)))
-                    return TemplateResponse(request, 'prelogin.html', {'error': "Z powodu zbyt wielu błędów użytkownik został zablokowany do " + str(next_login_time)})
+                    return TemplateResponse(request, 'prelogin.html', {
+                        'error': "Z powodu zbyt wielu błędów użytkownik został zablokowany do " + str(next_login_time)})
 
             try:
                 if mask != lastMask.mask:
@@ -226,7 +233,8 @@ def log_in(request):
 
 @login_required
 def change_password(request):
-    request_params = (request.GET.get('old_password'), request.GET.get('new_password1'), request.GET.get('new_password2'))
+    request_params = (
+    request.GET.get('old_password'), request.GET.get('new_password1'), request.GET.get('new_password2'))
     print(request.GET)
     if not any(param is None for param in request_params):
         form = ChangePasswordForm(user=request.user, data=request.GET)

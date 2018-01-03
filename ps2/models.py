@@ -8,16 +8,20 @@ from django.db import models
 class Message(models.Model):
     content = models.CharField(max_length=255)
     owner = models.ForeignKey(User)
-    editor = models.ForeignKey(User, related_name='editor_user', blank=True, null=True)
+    editors = models.ManyToManyField(User, related_name='editor_user', blank=True)
 
     def can_content_be_edited_by(self, user):
-        if self.editor:
-            return self.owner.id == user.id or self.editor.id == user.id
-        else:
-            return self.is_owner(user)
+        return self.is_owner(user) or self.is_editor(user)
 
     def is_owner(self, user):
         return self.owner.id == user.id
+
+    def is_editor(self, user):
+        editors = self.editors.all()
+        for editor in editors:
+            if editor.id == user.id:
+                return True
+        return False
 
     def __str__(self):
         return "Message: '" + self.content + "' by " + self.owner.username

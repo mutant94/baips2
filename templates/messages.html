@@ -14,7 +14,10 @@
                         Właściciel: {{ message.owner.username }}
                     </td>
                     <td>
-                        Edytor: {{ message.editor.username }}
+                        Edytorzy:
+                        {% for editor in message.editors.all %}
+                            {{ editor.username }}
+                            {% endfor %}
                     </td>
                     <td>
                         <form method="get" action="/messages/">
