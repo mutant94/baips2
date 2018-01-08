@@ -59,7 +59,7 @@ def messages(request):
 
     return TemplateResponse(request, 'messages.html', context)
 
-
+@login_required
 def edit_message(request):
     if request.GET.get('confirm') and request.GET.get('message_id') and request.GET.get('message_content'):
         message_to_edit = models.Message.objects.get(id=request.GET.get('message_id'))
